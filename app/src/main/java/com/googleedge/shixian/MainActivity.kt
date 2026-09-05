@@ -66,7 +66,7 @@ private enum class Tab(val label:String,val icon:ImageVector) {
     var shopping by remember { mutableStateOf(store.shopping) }
     var selected by remember { mutableStateOf<Recipe?>(null) }
     Scaffold(
-        bottomBar = { NavigationBar { Tab.entries.forEach { item -> NavigationBarItem(tab==item,{tab=item}, {Icon(item.icon,null)}, {Text(item.label)}) } } }
+        bottomBar = { NavigationBar { Tab.entries.forEach { item -> NavigationBarItem(selected=tab==item,onClick={tab=item},icon={Icon(item.icon,null)},label={Text(item.label)}) } } }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when(tab) {
@@ -142,7 +142,7 @@ private enum class Tab(val label:String,val icon:ImageVector) {
     val camera=rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()){it?.let(::scan)}
     val context=androidx.compose.ui.platform.LocalContext.current
     val pick=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()){uri->uri?.let{runCatching{ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver,it))}.onSuccess(::scan).onFailure{e->error=e.message}}}
-    Scaffold(floatingActionButton={ExtendedFloatingActionButton({add=true},{Icon(Icons.Rounded.Add,null)},{Text("添加食材")})}) { inner ->
+    Scaffold(floatingActionButton={ExtendedFloatingActionButton(onClick={add=true},icon={Icon(Icons.Rounded.Add,null)},text={Text("添加食材")})}) { inner ->
         LazyColumn(Modifier.padding(inner).fillMaxSize(),contentPadding=PaddingValues(bottom=92.dp)) {
             item { PageHeader("我的食材","冰箱","先确认食材，再让 AI 安排这顿饭") }
             item { Row(Modifier.padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(10.dp)) { OutlinedButton({camera.launch(null)},enabled=!scanning,modifier=Modifier.weight(1f)){Icon(Icons.Rounded.CameraAlt,null);Spacer(Modifier.width(6.dp));Text("拍照识别")}; OutlinedButton({pick.launch("image/*")},enabled=!scanning,modifier=Modifier.weight(1f)){Icon(Icons.Rounded.PhotoLibrary,null);Spacer(Modifier.width(6.dp));Text("相册导入")} } }
