@@ -28,6 +28,19 @@ class AppStore(context: Context) {
         get() = prefs.getString("custom_need", "") ?: ""
         set(v) = prefs.edit().putString("custom_need", v).apply()
 
+    var task: TaskSnapshot
+        get() = runCatching { TaskSnapshot.fromJson(JSONObject(prefs.getString("active_task", "{}") ?: "{}")) }.getOrDefault(TaskSnapshot())
+        set(v) { prefs.edit().putString("active_task", v.toJson().toString()).apply() }
+
+    var logs: List<LogEntry>
+        get() = runCatching { JSONArray(prefs.getString("logs", "[]")).objects().map(LogEntry::fromJson) }.getOrDefault(emptyList())
+        private set(v) { prefs.edit().putString("logs", JSONArray().also { a -> v.takeLast(300).forEach { a.put(it.toJson()) } }.toString()).apply() }
+
+    fun appendLog(kind: String, message: String, detail: String = "") {
+        logs = logs + LogEntry(System.currentTimeMillis(), kind, message, detail)
+    }
+    fun clearLogs() { logs = emptyList() }
+
     var ingredients: List<Ingredient>
         get() = runCatching { JSONArray(prefs.getString("ingredients", "[]")).objects().map { Ingredient(it.optString("name"),it.optString("amount"),it.optString("category")) } }.getOrDefault(emptyList())
         set(v) { prefs.edit().putString("ingredients", JSONArray().also { a -> v.forEach { a.put(JSONObject().put("name",it.name).put("amount",it.amount).put("category",it.category)) } }.toString()).apply() }

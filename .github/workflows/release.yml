@@ -1,0 +1,47 @@
+name: Release 时鲜 1.0
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'Release 时鲜 1.0')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build APK
+        run: gradle assembleDebug --stacktrace
+      - name: Prepare release asset
+        run: cp app/build/outputs/apk/debug/app-debug.apk shixian-v1.0.apk
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          name: 时鲜 1.0
+          body: |
+            时鲜 1.0 首个公开版本。
+
+            - Android 11 及以上
+            - WorkManager 后台菜谱任务
+            - 天气、时令、冰箱食材和饮食偏好综合推荐
+            - AI 追问、阶段进度、预计剩余时间和可展开工作摘要
+            - 独立菜谱详情页、收藏、购物清单和运行日志
+          files: shixian-v1.0.apk
+          make_latest: true

@@ -16,6 +16,54 @@ data class Preferences(
     val minutes: Int = 30
 )
 
+data class ClarificationQuestion(
+    val id: String,
+    val question: String,
+    val options: List<String> = emptyList()
+) {
+    fun toJson() = JSONObject().put("id", id).put("question", question).put("options", JSONArray(options))
+    companion object {
+        fun fromJson(o: JSONObject) = ClarificationQuestion(o.optString("id"), o.optString("question"), o.optJSONArray("options").strings())
+    }
+}
+
+enum class TaskStatus { IDLE, RUNNING, NEEDS_INPUT, SUCCESS, FAILED }
+
+data class TaskSnapshot(
+    val id: String = "",
+    val status: TaskStatus = TaskStatus.IDLE,
+    val phase: String = "",
+    val progress: Int = 0,
+    val etaSeconds: Int = 0,
+    val startedAt: Long = 0L,
+    val input: String = "",
+    val workLog: List<String> = emptyList(),
+    val questions: List<ClarificationQuestion> = emptyList(),
+    val answers: String = "",
+    val recipes: List<Recipe> = emptyList(),
+    val error: String = ""
+) {
+    fun toJson() = JSONObject().apply {
+        put("id", id); put("status", status.name); put("phase", phase); put("progress", progress)
+        put("eta_seconds", etaSeconds); put("started_at", startedAt); put("input", input)
+        put("work_log", JSONArray(workLog)); put("questions", JSONArray().also { a -> questions.forEach { a.put(it.toJson()) } })
+        put("answers", answers); put("recipes", JSONArray().also { a -> recipes.forEach { a.put(it.toJson()) } }); put("error", error)
+    }
+    companion object {
+        fun fromJson(o: JSONObject) = TaskSnapshot(
+            o.optString("id"), runCatching { TaskStatus.valueOf(o.optString("status", "IDLE")) }.getOrDefault(TaskStatus.IDLE),
+            o.optString("phase"), o.optInt("progress"), o.optInt("eta_seconds"), o.optLong("started_at"), o.optString("input"),
+            o.optJSONArray("work_log").strings(), o.optJSONArray("questions").objects().map(ClarificationQuestion::fromJson),
+            o.optString("answers"), o.optJSONArray("recipes").objects().map(Recipe::fromJson), o.optString("error")
+        )
+    }
+}
+
+data class LogEntry(val time: Long, val kind: String, val message: String, val detail: String = "") {
+    fun toJson() = JSONObject().put("time", time).put("kind", kind).put("message", message).put("detail", detail)
+    companion object { fun fromJson(o: JSONObject) = LogEntry(o.optLong("time"), o.optString("kind"), o.optString("message"), o.optString("detail")) }
+}
+
 data class RecipeIngredient(val name: String, val amount: String, val status: String)
 data class RecipeStep(val title: String, val detail: String, val minutes: Int, val check: String)
 data class Recipe(
@@ -57,4 +105,3 @@ data class Recipe(
 
 fun JSONArray?.objects(): List<JSONObject> = if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }
 fun JSONArray?.strings(): List<String> = if (this == null) emptyList() else (0 until length()).mapNotNull { optString(it).takeIf(String::isNotBlank) }
-
